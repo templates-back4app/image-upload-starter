@@ -42,12 +42,13 @@ async function uploadFile(file) {
   return api("POST", `/files/${encodeURIComponent(safeName)}`, file);
 }
 
-// Step 2: the row. A File field references the stored file by name; the backend fills in the url when you read it back.
+// Step 2: the row. A File field references the stored file by name. Send the url from step 1 as well: measured
+// 2026-09-24, once a Cloud Code trigger exists on the class, a File sent as {__type, name} alone answered 502.
 // owner is a pointer to the logged-in user; the ACL lets everyone read the row and only the owner change or delete it.
-async function createPhoto({ name }, caption, file) {
+async function createPhoto({ name, url }, caption, file) {
   return api("POST", "/classes/Photo", {
     caption,
-    image: { __type: "File", name },
+    image: { __type: "File", name, url },
     contentType: file.type,
     size: file.size,
     owner: { __type: "Pointer", className: "_User", objectId: me.objectId },

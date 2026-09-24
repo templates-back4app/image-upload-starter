@@ -95,7 +95,7 @@ done
 
 say "6 is the file URL public when the Photo row is owner-only?"
 NAME1M=$(cat "$WORK/1M.name")
-PHOTO=$(curl -s "${S[@]}" -H "Content-Type: application/json" -X POST "$BASE/classes/Photo" -d "{\"caption\":\"owner-only row\",\"owner\":{\"__type\":\"Pointer\",\"className\":\"_User\",\"objectId\":\"$USER_ID\"},\"image\":{\"__type\":\"File\",\"name\":\"$NAME1M\"},\"ACL\":{\"$USER_ID\":{\"read\":true,\"write\":true}}}")
+PHOTO=$(curl -s "${S[@]}" -H "Content-Type: application/json" -X POST "$BASE/classes/Photo" -d "{\"caption\":\"owner-only row\",\"owner\":{\"__type\":\"Pointer\",\"className\":\"_User\",\"objectId\":\"$USER_ID\"},\"image\":{\"__type\":\"File\",\"name\":\"$NAME1M\",\"url\":\"$u\"},\"ACL\":{\"$USER_ID\":{\"read\":true,\"write\":true}}}")
 PID=$(json 'd["objectId"]' <<<"$PHOTO"); echo "Photo $PID created with ACL {owner: read+write} and image=$NAME1M"
 printf '%-42s' "anonymous GET /classes/Photo/$PID";    curl -s -w '  %{http_code}\n' "${H[@]}" "$BASE/classes/Photo/$PID"
 printf '%-42s' "owner     GET /classes/Photo/$PID";    curl -s -o /dev/null -w '%{http_code}\n' "${S[@]}" "$BASE/classes/Photo/$PID"

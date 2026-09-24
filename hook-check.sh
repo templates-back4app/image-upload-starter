@@ -3,6 +3,8 @@
 # Proves the two Cloud Code rules in cloud/main.js after they are deployed:
 #   beforeSave("Photo")  — owner and ACL come from the session, whatever the client sent; no session → 206
 #   beforeDelete("Photo") — deleting the row deletes the file (origin 404), without the client holding the master key
+# The File value is sent with BOTH name and url from the upload response: measured 2026-09-24, with a trigger on the class,
+# a File sent as {__type, name} alone answered 502 and restarted the app; with url it went through.
 # usage: set -a; . ./.env; set +a; ./hook-check.sh
 set -uo pipefail
 BASE="${BASE:-https://parseapi.back4app.com}"
@@ -36,10 +38,10 @@ F=$(curl -s "${SA[@]}" -H "Content-Type: image/png" -X POST "$BASE/files/hook.pn
 NAME=$(json 'd["name"]' <<<"$F"); URL=$(json 'd["url"]' <<<"$F"); echo "name=$NAME"; echo "url=$(redact <<<"$URL")"
 
 say "2 beforeSave: no session → ?"
-curl -s -w '  %{http_code}\n' "${H[@]}" -H "Content-Type: application/json" -X POST "$BASE/classes/Photo" -d "{\"caption\":\"anonymous\",\"image\":{\"__type\":\"File\",\"name\":\"$NAME\"}}"
+curl -s -w '  %{http_code}\n' "${H[@]}" -H "Content-Type: application/json" -X POST "$BASE/classes/Photo" -d "{\"caption\":\"anonymous\",\"image\":{\"__type\":\"File\",\"name\":\"$NAME\",\"url\":\"$URL\"}}"
 
 say "3 beforeSave: ana sends owner=bob and a public-write ACL → what is stored?"
-P=$(curl -s "${SA[@]}" -H "Content-Type: application/json" -X POST "$BASE/classes/Photo" -d "{\"caption\":\"hook test\",\"image\":{\"__type\":\"File\",\"name\":\"$NAME\"},\"owner\":{\"__type\":\"Pointer\",\"className\":\"_User\",\"objectId\":\"$IDB\"},\"ACL\":{\"*\":{\"read\":true,\"write\":true}}}")
+P=$(curl -s "${SA[@]}" -H "Content-Type: application/json" -X POST "$BASE/classes/Photo" -d "{\"caption\":\"hook test\",\"image\":{\"__type\":\"File\",\"name\":\"$NAME\",\"url\":\"$URL\"},\"owner\":{\"__type\":\"Pointer\",\"className\":\"_User\",\"objectId\":\"$IDB\"},\"ACL\":{\"*\":{\"read\":true,\"write\":true}}}")
 PID=$(json 'd["objectId"]' <<<"$P"); echo "created '$PID': $(head -c 200 <<<"$P")"
 [ -n "$PID" ] || { echo "no row was created; the rest of the proof cannot run. done $(now)"; exit 1; }
 echo "stored (ana reads it back):"; curl -s "${SA[@]}" "$BASE/classes/Photo/$PID?keys=owner,ACL,caption" | python3 -c "import json,sys; d=json.load(sys.stdin); print('  owner =', d['owner']['objectId'], '(ana=$IDA bob=$IDB)'); print('  ACL   =', json.dumps(d['ACL']))"
