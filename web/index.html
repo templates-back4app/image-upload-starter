@@ -1,0 +1,66 @@
+<!doctype html>
+<!-- Stack: HTML + vanilla JavaScript, no framework, no SDK | File: web/index.html
+     Upload an image to a managed backend over REST, reference it from a Photo row, and list the photos with their URLs. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Image upload starter</title>
+  <style>
+    body { font: 16px/1.5 system-ui, sans-serif; max-width: 640px; margin: 48px auto; padding: 0 20px; color: #1a1a19; }
+    h1 { font-size: 28px; margin: 0 0 4px; } h2 { font-size: 18px; margin: 28px 0 8px; }
+    form { display: grid; gap: 8px; margin: 0 0 8px; }
+    input, button { padding: 10px; font-size: 16px; border: 1px solid #8b8b82; border-radius: 4px; }
+    button { padding: 10px 14px; font-size: 15px; background: #f4f4ef; cursor: pointer; }
+    button.primary { background: #1568b8; color: #fff; border-color: #1568b8; }
+    #status { padding: 10px 12px; border-radius: 6px; background: #f4f4ef; min-height: 1.5em; white-space: pre-wrap; word-break: break-all; font-family: ui-monospace, Menlo, monospace; font-size: 13px; }
+    #status.err { background: #fdecea; color: #b3261e; } #status.ok { background: #e9f5ee; color: #0f6b3f; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    [hidden] { display: none !important; }
+    small { color: #575752; }
+    #photos { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+    #photos li { display: grid; grid-template-columns: 120px 1fr; gap: 12px; align-items: start; padding: 10px; border: 1px solid #dcdcd4; border-radius: 8px; }
+    #photos img { width: 120px; height: 120px; object-fit: cover; border-radius: 6px; background: #f4f4ef; }
+    #photos code { font-size: 12px; word-break: break-all; color: #575752; }
+    #photos b { display: block; }
+  </style>
+</head>
+<body>
+  <h1>Image upload starter</h1>
+  <small>Two REST calls per photo: <code>POST /files/&lt;name&gt;</code> with the bytes, then <code>POST /classes/Photo</code> with the returned file name. The page never sees a bucket, a signed URL or a server.</small>
+
+  <div id="status"></div>
+
+  <section id="anon">
+    <h2>Log in first (uploads need a session)</h2>
+    <form id="signup">
+      <input name="username" placeholder="username" autocomplete="username" required>
+      <input name="email" type="email" placeholder="email (signup only)" autocomplete="email">
+      <input name="password" type="password" placeholder="password" autocomplete="new-password" required>
+      <div class="row">
+        <button class="primary" value="signup">Create account</button>
+        <button value="login">Log in</button>
+      </div>
+    </form>
+  </section>
+
+  <section id="me" hidden>
+    <h2>Upload a photo</h2>
+    <form id="upload">
+      <input name="file" type="file" accept="image/*" required>
+      <input name="caption" placeholder="caption" maxlength="140">
+      <div class="row">
+        <button class="primary">Upload</button>
+        <span id="who"><small></small></span>
+        <button id="logout" type="button" style="margin-left:auto">Log out</button>
+      </div>
+    </form>
+
+    <h2>Photos</h2>
+    <ul id="photos"></ul>
+  </section>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

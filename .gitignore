@@ -1,0 +1,6 @@
+.env
+web/config.js
+runs/*.log
+*.png
+!docs/*.png
+.DS_Store
