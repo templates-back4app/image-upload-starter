@@ -23,6 +23,7 @@ Measured on September 24, 2026: a **1 MB** image uploaded in **6.8 s** from `cur
 - `web/` — `index.html` and `app.js` (vanilla JavaScript, no framework, no SDK): sign up or log in, pick a file, upload it, create the Photo row, list photos with their URLs. The status line prints the two timings from `performance.now()`.
 - `cloud/main.js` — the backend rules, deployed as Cloud Code: `beforeSave("Photo")` sets the owner and the ACL from the session, `beforeDelete("Photo")` deletes the file with the master key so a deleted row does not leave its bytes online.
 - `upload-check.sh` — the measurements from `curl`: who may upload (client key → `130`), the size and time table, the limit probe, accepted content types (`.html` → `130`, `.svg`/`.txt`/`.js` → `201`), what the URL serves and through what, the owner-only ACL test, the row-delete and file-delete tests.
+- `hook-check.sh` — the proof for `cloud/main.js` once it is deployed: two users, an upload, a row created with the wrong owner and an open ACL on purpose (the hook must overwrite both), a non-owner's update and delete (must be `404 / 101`), then the owner's delete and a `GET` of the file's origin path (must be `404`). Run it once, not in a loop.
 - `web-check.mjs` — drives `web/` in headless Chrome over the DevTools protocol (no browser package): signs up, sets the file input, clicks Upload, reads the page's own timings, takes the screenshots.
 
 ## Findings from the run
@@ -38,7 +39,7 @@ Measured on September 24, 2026: a **1 MB** image uploaded in **6.8 s** from `cur
 
 1. **Create a free backend.** Sign up at [https://www.back4app.com/signup?utm_source=github&utm_medium=repo&utm_campaign=image-upload-starter](https://www.back4app.com/signup?utm_source=github&utm_medium=repo&utm_campaign=image-upload-starter), then **New App → Build your Backend**. The free plan (1 GB of file storage) is enough for everything here.
 2. **App Settings → Security & Keys**: copy the App ID and the JavaScript key into `web/config.js` (copy `web/config.example.js`; `config.js` is git-ignored). For `upload-check.sh`, copy the same two plus the Master key into `.env` (`.env.example` shows the names). The master key stays on your machine.
-3. **Cloud Code → main.js**: paste `cloud/main.js` and click **Deploy**, twice on a fresh backend (the first deploy ships nothing). Prove it: delete a Photo row from the page or the Database Browser, then `GET` its file's origin path; it must be gone.
+3. **Cloud Code → main.js**: paste `cloud/main.js` and click **Deploy**, twice on a fresh backend (the first deploy ships nothing). Prove it with `./hook-check.sh`: the owner's delete must leave the file's origin path at `404`. On our backend, on 2026-09-24 between 14:13 and 14:25 UTC, the first deploy of this file answered `502` to every Photo save with an image and every Photo delete, with `/health` down for a second each time, while a save without an image got the hook's own `142`; the Cloud Code logs in the dashboard are where to look if you see the same, and the proof is pending on our side.
 4. Serve `web/` with any static server and upload a picture. **Database → Photo** shows the row with the `image` column as a file link, and **Database → Files** (if your dashboard has it) lists the stored objects.
 
 ## Run it
@@ -51,6 +52,7 @@ cp .env.example .env                     # APP_ID, JS_KEY, MASTER_KEY
 set -a; . ./.env; set +a
 ./upload-check.sh                        # everything: identities, sizes, limit, types, headers, ACL, deletes
 ./upload-check.sh sizes                  # the size/time table only, for repeat runs
+./hook-check.sh                          # after cloud/main.js is deployed: owner/ACL from the session, delete takes the file
 node web-check.mjs http://127.0.0.1:8765/ ./runs path/to/a.png path/to/b.png   # the same upload from the page, headless Chrome
 ```
 
